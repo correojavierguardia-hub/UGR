@@ -1,24 +1,28 @@
 name: Crear Ejecutable Windows
-on: [push] # Se ejecuta cada vez que guardas cambios
+on: [push, workflow_dispatch] # Permite ejecutarlo manualmente
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Descargar codigo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Instalar Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+
+      - name: Instalar Nativefier
+        run: npm install -g nativefier
 
       - name: Convertir HTML a EXE
         run: |
-          npx nativefier "file:///${{ github.workspace }}/index.html" --name "UGR-Test" --internal-urls ".*" --single-instance
+          nativefier "file:///${{ github.workspace }}/index.html" --name "UGR-Test" --internal-urls ".*" --single-instance --portable
           
       - name: Guardar el archivo EXE
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Juego-Psicomotricidad-EXE
-          path: ./*win32-x64/
+          path: ./*.zip # Nativefier portable suele crear un zip o carpeta
+          if-no-files-found: warn
