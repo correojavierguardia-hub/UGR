@@ -1,5 +1,8 @@
-name: Ejecutable Final Corregido
+name: Ejecutable Final Ultra-Compatible
 on: [push, workflow_dispatch]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -13,24 +16,31 @@ jobs:
         run: |
           curl -L https://dl.nwjs.io/v0.82.0/nwjs-v0.82.0-win-x64.zip -o nwjs.zip
           Expand-Archive -Path nwjs.zip -DestinationPath temp
-          # Movemos el contenido a una carpeta llamada 'output'
           Move-Item -Path temp/nwjs-v0.82.0-win-x64 -Destination output
 
-      - name: Inyectar archivos del test
+      - name: Preparar Archivos
         shell: pwsh
         run: |
-          # Copiamos tu HTML y el JSON a la carpeta del motor
-          Copy-Item -Path "index.html" -Destination "output/"
+          # Buscamos cualquier archivo HTML en el repositorio
+          $htmlFile = Get-ChildItem -Path . -Filter "*.html" -Recurse | Select-Object -First 1
           
-          # Creamos el package.json directamente para evitar errores de archivo
+          if ($null -eq $htmlFile) {
+              Write-Error "¡No se encontró ningún archivo HTML en tu repositorio! Asegúrate de subir tu código."
+              exit 1
+          }
+
+          # Lo copiamos a la carpeta de salida con el nombre correcto para el motor
+          Copy-Item -Path $htmlFile.FullName -Destination "output/index.html"
+          
+          # Creamos el package.json
           $json = '{"name":"ugr-test","main":"index.html","window":{"toolbar":false,"width":1000,"height":800}}'
           $json | Out-File -FilePath "output/package.json" -Encoding utf8
           
-          # Renombramos el ejecutable para que sea facil de ver
+          # Renombramos el motor
           Rename-Item -Path "output/nw.exe" -NewName "UGR-Test-Psicomotricidad.exe"
 
       - name: Subir Juego
         uses: actions/upload-artifact@v4
         with:
-          name: TEST-UGR-OPERATIVO
-          path: output/   # <--- Ahora la ruta coincide exactamente con la carpeta creada
+          name: TEST-UGR-LISTO
+          path: output/
