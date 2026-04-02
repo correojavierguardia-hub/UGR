@@ -1,5 +1,5 @@
-name: Crear Ejecutable Windows
-on: [push, workflow_dispatch] # Permite ejecutarlo manualmente
+name: Ejecutable Final Corregido
+on: [push, workflow_dispatch]
 
 jobs:
   build:
@@ -8,21 +8,29 @@ jobs:
       - name: Descargar codigo
         uses: actions/checkout@v4
 
-      - name: Instalar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Instalar Nativefier
-        run: npm install -g nativefier
-
-      - name: Convertir HTML a EXE
+      - name: Descargar motor NW.js
+        shell: pwsh
         run: |
-          nativefier "file:///${{ github.workspace }}/index.html" --name "UGR-Test" --internal-urls ".*" --single-instance --portable
+          curl -L https://dl.nwjs.io/v0.82.0/nwjs-v0.82.0-win-x64.zip -o nwjs.zip
+          Expand-Archive -Path nwjs.zip -DestinationPath temp
+          # Movemos el contenido a una carpeta llamada 'output'
+          Move-Item -Path temp/nwjs-v0.82.0-win-x64 -Destination output
+
+      - name: Inyectar archivos del test
+        shell: pwsh
+        run: |
+          # Copiamos tu HTML y el JSON a la carpeta del motor
+          Copy-Item -Path "index.html" -Destination "output/"
           
-      - name: Guardar el archivo EXE
+          # Creamos el package.json directamente para evitar errores de archivo
+          $json = '{"name":"ugr-test","main":"index.html","window":{"toolbar":false,"width":1000,"height":800}}'
+          $json | Out-File -FilePath "output/package.json" -Encoding utf8
+          
+          # Renombramos el ejecutable para que sea facil de ver
+          Rename-Item -Path "output/nw.exe" -NewName "UGR-Test-Psicomotricidad.exe"
+
+      - name: Subir Juego
         uses: actions/upload-artifact@v4
         with:
-          name: Juego-Psicomotricidad-EXE
-          path: ./*.zip # Nativefier portable suele crear un zip o carpeta
-          if-no-files-found: warn
+          name: TEST-UGR-OPERATIVO
+          path: output/   # <--- Ahora la ruta coincide exactamente con la carpeta creada
